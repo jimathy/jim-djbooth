@@ -1,10 +1,12 @@
+Loc = Loc or {}
+
 Loc["en"] = {
     notify = {
         ["load_link"] = "Loading link: ",
         ["new_volume"] = "Volume: ",
     },
     target = {
-        ["dj_booth"] = "DJ Booth",
+        ["dj_booth"] = "Radio",
     },
     menu = {
         ["no_song"] = "🔇 No Song Playing",
@@ -20,7 +22,7 @@ Loc["en"] = {
         ["stop"] = "Stop music",
         ["back"] = "Back",
         ["history_play"] = "History - Press to play",
-        ["youtube_url"] = "YouTube URL",
+        ["youtube_url"] = "Casette URL",
         ["range"] = "Min: 0 - Max: 100",
         ["submit"] = "Submit",
         ["select"] = "Song Selection",

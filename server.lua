@@ -1,9 +1,8 @@
-local QBCore = exports[Config.Core]:GetCoreObject()
 
 previousSongs, CurrentBooths = {}, {}
-local Locations = Config.Locations
+local Locations = Locations
 
-QBCore.Functions.CreateCallback('jim-djbooth:server:syncLocations', function(source, cb) cb(Locations) end)
+createCallback("jim-djbooth:server:syncLocations", function(source) return Locations end)
 
 local function DestroyAll()
 	for i = 1, #Locations do
@@ -15,7 +14,7 @@ end
 RegisterNetEvent('jim-djbooth:server:AddLocation', function(data)
 	DestroyAll()
 	Locations[#Locations+1] = data
-	if Config.Debug then
+	if debugMode then
 		local coords = { string.format("%.2f", data.coords.x), string.format("%.2f", data.coords.y), string.format("%.2f", data.coords.z), (string.format("%.2f", data.coords.w or 0.0)) }
 		print("^5Debug^7: ^2Adding new ^3Booth^2 location^7: ^5vec4^7(^6"..(coords[1]).."^7, ^6"..(coords[2]).."^7, ^6"..(coords[3]).."^7, ^6"..(coords[4]).."^7)")
 	end
@@ -25,14 +24,16 @@ end)
 RegisterNetEvent("jim-djbooth:server:syncLocations", function() TriggerClientEvent("jim-jobgarage:client:syncLocations", -1, Locations) end)
 
 RegisterNetEvent('jim-djbooth:server:playMusic', function(song, zoneNum)
-    local src, coords, Booth = source, GetEntityCoords(ped), Locations[zoneNum]
+    local src, Booth = source, Locations[zoneNum]
 	local zoneLabel = ""..(Booth.gang or Booth.job)..zoneNum
-	if not previousSongs[zoneLabel] then previousSongs[zoneLabel] = { [1] = song, }
+	if not previousSongs[zoneLabel] then
+		previousSongs[zoneLabel] = { [1] = song, }
 	elseif previousSongs[zoneLabel] then
 		local songList = previousSongs[zoneLabel]
 		songList[#songList+1] = song
 		previousSongs[zoneLabel] = songList
 	end
+	print(zoneLabel..": Playing song: "..song)
 	exports["xsound"]:PlayUrlPos(-1, zoneLabel, song, (Booth.CurrentVolume or Booth.DefaultVolume), (Booth.soundLoc or Booth.coords))
 	exports["xsound"]:Distance(-1, zoneLabel, Booth.radius)
 	Locations[zoneNum].playing = true
@@ -42,15 +43,24 @@ end)
 RegisterNetEvent('jim-djbooth:server:stopMusic', function(data)
     local src, Booth = source, Locations[data.zoneNum]
 	local zoneLabel = ""..(Booth.gang or Booth.job)..data.zoneNum
-    if Booth.playing then Locations[data.zoneNum].playing = nil Locations[data.zoneNum].CurrentVolume = nil exports["xsound"]:Destroy(-1, zoneLabel) end
+    if Booth.playing then
+		Locations[data.zoneNum].playing = nil
+		Locations[data.zoneNum].CurrentVolume = nil
+		exports["xsound"]:Destroy(-1, zoneLabel)
+	end
     TriggerClientEvent('jim-djbooth:client:playMusic', src, { zoneNum = data.zoneNum })
 end)
 
 RegisterNetEvent("jim-djbooth:server:PauseResume", function(data)
     local src, Booth = source, Locations[data.zoneNum]
 	local zoneLabel = ""..(Booth.gang or Booth.job)..data.zoneNum
-	if Booth.playing then Booth.playing = nil exports["xsound"]:Pause(-1, zoneLabel)
-	elseif not Locations[data.zoneNum].playing then Locations[data.zoneNum].playing = true exports["xsound"]:Resume(-1, zoneLabel) end
+	if Booth.playing then
+		Booth.playing = nil
+		exports["xsound"]:Pause(-1, zoneLabel)
+	elseif not Locations[data.zoneNum].playing then
+		Locations[data.zoneNum].playing = true
+		exports["xsound"]:Resume(-1, zoneLabel)
+	end
     TriggerClientEvent('jim-djbooth:client:playMusic', src, { zoneNum = data.zoneNum })
 end)
 
@@ -62,18 +72,16 @@ RegisterNetEvent('jim-djbooth:server:changeVolume', function(volume, zoneNum)
     TriggerClientEvent('jim-djbooth:client:playMusic', src, { zoneNum = zoneNum })
 end)
 
-QBCore.Functions.CreateCallback('jim-djbooth:songInfo', function(source, cb) cb(previousSongs) end)
+createCallback("jim-djbooth:songInfo", function(source) return previousSongs end)
 
-AddEventHandler('onResourceStop', function(r) if r ~= GetCurrentResourceName() then return end DestroyAll() end)
+onResourceStop(function() DestroyAll() end, true)
 
-local function CheckVersion()
-	PerformHttpRequest('https://raw.githubusercontent.com/jimathy/jim-djbooth/master/version.txt', function(err, newestVersion, headers)
-		local currentVersion = GetResourceMetadata(GetCurrentResourceName(), 'version')
-		if not newestVersion then print("Currently unable to run a version check.") return end
-		local advice = "^1You are currently running an outdated version^7, ^1please update^7"
-		if newestVersion:gsub("%s+", "") == currentVersion:gsub("%s+", "") then advice = '^6You are running the latest version.^7'
-		else print("^3Version Check^7: ^2Current^7: '^5"..currentVersion.."^7' ^2Latest^7: '^5"..newestVersion.."^7'") end
-		print(advice)
+--[[ local documents = {
+	["boombox"] = "jim-djbooth:client:playMusic",
+}
+
+for docName, eventName in pairs(documents) do
+	Core.Functions.CreateUseableItem(docName, function(source, item)
+		TriggerClientEvent(eventName, source)
 	end)
-end
-CheckVersion()
+end ]]

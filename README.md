@@ -1,27 +1,14 @@
 # jim-djbooth
 Play music at configured coords!
 
-My edit that uses qb-menu icons and allows qb-target to be used for every location
+It handles creation of props and targets to allow players to play music that other players can hear nearby
 
 Targets are generated as "Circle Zones" from the coords set for each location.
 
-Has Dynamic menu that changes depending on state of music.
-
-
+Uses dynamically create menus that changes depending on state of music.
 
 ## Dependencies
-* [xsound](https://github.com/Xogy/xsound)
-* [PolyZone](https://github.com/qbcore-framework/PolyZone)
-* [qb-menu](https://github.com/qbcore-framework/qb-menu)
-* [qb-target](https://github.com/qbcore-framework/qb-target)
-* [ox_lib Context](https://github.com/qbcore-framework/qb-target) (optional)
-
-
-# Prequisites
-## [xSound](https://github.com/Xogy/xsound):
-    - Download the zip and extract the folder
-    - If needed, rename the folder to from xsound-master to xsound
-    - Place the folder in your server folder inside [standalone]
+- [xsound](https://github.com/Xogy/xsound) -  https://github.com/Xogy/xsound
 
 # Installation
     - Download the zip and extract the folder
@@ -30,7 +17,7 @@ Has Dynamic menu that changes depending on state of music.
     - Make sure it starts AFTER xsound and BEFORE any scripts that make use of it
 
 Example of my load order:
-```CSS
+```
 # QBCore & Extra stuff
 ensure qb-core
 ensure [qb]
@@ -49,12 +36,16 @@ ensure [jim]
 - For example:
 ```lua
 { -- Sisyphus Theater
-    job = "public",                             -- "public" makes it so anyone can add music.
-    enableBooth = true,                         -- option to disable rather than deleting code
-    DefaultVolume = 0.15,                       -- 0.01 is lowest, 1.0 is max
-    radius = 200,                               -- The radius of the sound from the booth
-    coords = vec3(206.9, 1181.04, 226.51),      -- Where the booth target is located
-    soundLoc = vec3(212.32, 1155.87, 227.01),   -- Add sound origin location (optional)
+    job = "public",                                     -- "public" or nil makes it so anyone can add music.
+    enableBooth = true,                                 -- option to disable rather than deleting code
+    DefaultVolume = 0.15,                               -- 0.01 is lowest, 1.0 is max
+    radius = 200,                                       -- The radius of the sound from the booth
+    coords = vec3(206.9, 1181.04, 226.51),              -- Where the booth target is located
+    soundLoc = vec3(212.32, 1155.87, 227.01),           -- Add sound origin location (optional)
+    prop = {                                            -- Add an optional prop for players to target
+        model = "prop_radio_01",                        -- the prop model
+        coords = vec4(-1190.22, -897.46, 14.83, 40),    -- the prop location and heading
+    }
 },
 ```
 - You can also add them from other scripts with the server sided event:
@@ -63,20 +54,24 @@ TriggerEvent("jim-djbooth:server:AddLocation",
     { -- Sisyphus Theater
         job = "public",
         enableBooth = true,
-        DefaultVolume = 0.15,
-        radius = 200,
+        DefaultVolume = 0.15, radius = 200,
         coords = vec3(206.9, 1181.04, 226.51),
         soundLoc = vec3(212.32, 1155.87, 227.01),
-    },
+        prop = {
+            model = "prop_radio_01",
+            coords = vec4(-1190.22, -897.46, 14.83, 40),
+        }
+    }
 )
 ```
-- This will make the extra dj-booth's from other scripts as plug and play as possible
-
-# Previews
-![unknown (12)](https://cdn.discordapp.com/attachments/976131183421317130/976210960807243796/ezgif-1-c3eeadcd5c.gif?size=4096)
-![ox](https://media.discordapp.net/attachments/644980519582302208/1079437483093278740/ezgif-3-da7718a0dd.gif)
 
 # Changelog
+## v1.4:
+    - Redesign to use `jim_bridge` for better optization and features
+    - Add more visuals for debug mode so its easier to visualize placements
+    - Added ability to spawn a prop in a specific location for players to target
+    - Better organisations of music playing code
+
 ## v1.3.2:
     - Now with less errors and real setup info
 

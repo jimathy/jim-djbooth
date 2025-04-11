@@ -1,12 +1,42 @@
 name "Jim-DJBooth"
 author "Jimathy"
-version "1.3.2"
-description 'QB-DJBooth Edit By Jimathy'
+version "1.4.0"
+description 'Music player script'
 fx_version "cerulean"
 game "gta5"
 lua54 'yes'
-dependency 'xsound'
 
-client_scripts {'@PolyZone/client.lua', '@PolyZone/BoxZone.lua', '@PolyZone/EntityZone.lua', '@PolyZone/CircleZone.lua', '@PolyZone/ComboZone.lua', 'client.lua', 'locales/*.lua' }
-shared_script { 'config.lua', 'locales/*.lua', 'shared.lua' }
-server_script { 'server.lua' }
+server_script '@oxmysql/lib/MySQL.lua'
+
+shared_scripts {
+    'locales/*.lua*',
+    'config.lua',
+
+    -- Required core scripts
+    '@ox_lib/init.lua',
+    '@ox_core/lib/init.lua',
+
+    '@es_extended/imports.lua',
+
+    '@qbx_core/modules/playerdata.lua',
+
+    --Jim Bridge
+    '@jim_bridge/starter.lua',
+    'shared/*.lua'
+}
+
+client_scripts {
+    '@PolyZone/client.lua',
+    '@PolyZone/BoxZone.lua',
+    '@PolyZone/EntityZone.lua',
+    '@PolyZone/CircleZone.lua',
+    '@PolyZone/ComboZone.lua',
+    --'@warmenu/warmenu.lua',
+
+    'client.lua',
+}
+
+server_script 'server.lua'
+
+dependency 'xsound'
+dependency 'jim_bridge'
