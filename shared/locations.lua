@@ -8,7 +8,7 @@ Locations = {
     },
 
     { -- Sisyphus Theater
-        job = nil, -- "public" makes it so anyone can add music.
+        job = "public", -- "public" makes it so anyone can add music.
         enableBooth = true,
         DefaultVolume = 0.15, radius = 200,
         coords = vec3(206.9, 1181.04, 226.51),
@@ -40,7 +40,7 @@ Locations = {
     },
 
     { -- Gabz Popsdiner Radio Prop
-        job = nil,
+        job = "public",
         enableBooth = true,
         DefaultVolume = 0.1, radius = 30,
         coords = vec3(1595.53, 6453.02, 26.165),

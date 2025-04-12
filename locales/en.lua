@@ -6,7 +6,7 @@ Loc["en"] = {
         ["new_volume"] = "Volume: ",
     },
     target = {
-        ["dj_booth"] = "Radio",
+        ["dj_booth"] = "DJ Booth",
     },
     menu = {
         ["no_song"] = "🔇 No Song Playing",
@@ -22,7 +22,7 @@ Loc["en"] = {
         ["stop"] = "Stop music",
         ["back"] = "Back",
         ["history_play"] = "History - Press to play",
-        ["youtube_url"] = "Casette URL",
+        ["youtube_url"] = "YouTube URL",
         ["range"] = "Min: 0 - Max: 100",
         ["submit"] = "Submit",
         ["select"] = "Song Selection",
