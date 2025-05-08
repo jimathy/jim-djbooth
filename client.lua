@@ -23,7 +23,7 @@ local function makeTargets()
 			end
 			local options = {
 				{ 	action = function()
-						TriggerEvent("jim-djbooth:client:playMusic", { zoneNum = i, job = RequireJob, gang = RequireGang, })
+						TriggerEvent(getScript()..":client:playMusic", { zoneNum = i, job = RequireJob, gang = RequireGang, })
 					end,
 					icon = "fab fa-youtube",
 					label = locale("target", "dj_booth"),
@@ -53,7 +53,8 @@ local function makeTargets()
 end
 
 local function syncLocations()
-	Locations = triggerCallback("jim-djbooth:server:syncLocations")
+	Wait(1000)
+	Locations = triggerCallback(getScript()..":server:syncLocations")
 	jsonPrint(Locations)
 	Wait(1000)
 	makeTargets()
@@ -67,26 +68,29 @@ onPlayerLoaded(function()
 	syncLocations()
 end, true)
 
-RegisterNetEvent("jim-djbooth:client:syncLocations", function(newLocations) Locations = newLocations makeTargets() end)
+RegisterNetEvent(getScript()..":client:syncLocations", function(newLocations)
+	Locations = newLocations
+	makeTargets()
+end)
 
-RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
+RegisterNetEvent(getScript()..":client:playMusic", function(data)
+	jsonPrint(data)
 	local booth = ""
 	for k, v in pairs(Locations) do
-		-- Replace the problematic line with the following distance calculation
 		local playerCoords = GetEntityCoords(PlayerPedId())
-		local targetCoords = v["coords"]
+		local targetCoords = v.coords
 		local dx = playerCoords.x - targetCoords.x
 		local dy = playerCoords.y - targetCoords.y
 		local dz = playerCoords.z - targetCoords.z
 		local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
 
-		if distance <= v["radius"] then
+		if distance <= v.radius then
 			booth = v.job and v.job..k or v.gang..k
 		end
 	end
 
 	local song = { playing = "", duration = "", timeStamp = "", url = "", icon = "", header = locale("menu", "no_song"), txt = "", volume = "" }
-	previousSongs = triggerCallback("jim-djbooth:songInfo")
+	previousSongs = triggerCallback(getScript()..":songInfo")
 
 	-- Grab song info and build table
 	if exports["xsound"]:soundExists(booth) then
@@ -99,9 +103,19 @@ RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
 			txt = exports["xsound"]:getLink(booth),
 			volume = math.ceil(exports["xsound"]:getVolume(booth)*100)
 		}
-		if exports["xsound"]:isPlaying(booth) then song.header = locale("menu", "cur_playing") end
-		if exports["xsound"]:isPaused(booth) then song.header = locale("menu", "cur_paused") end
-		if exports["xsound"]:getMaxDuration(booth) == 0 then song.timeStamp = locale("menu", "live") end
+
+		if exports["xsound"]:isPlaying(booth) then
+			song.header = locale("menu", "cur_playing")
+		end
+
+		if exports["xsound"]:isPaused(booth) then
+			song.header = locale("menu", "cur_paused")
+		end
+
+		if exports["xsound"]:getMaxDuration(booth) == 0 then
+			song.timeStamp = locale("menu", "live")
+		end
+
 		if exports["xsound"]:getMaxDuration(booth) > 0 then
 			local timestamp = (exports["xsound"]:getTimeStamp(booth) * 10)
 			local mm = (timestamp // (60 * 10)) % 60.
@@ -112,7 +126,11 @@ RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
 			ss = (duration // 10) % 60.
 			duration = string.format("%02d:%02d", mm, ss)
 			song.timeStamp = "("..timestamp.."/"..duration..")"
-			if exports["xsound"]:isPlaying(booth) then song.timeStamp = "🔊 "..song.timeStamp else song.timeStamp = "🔇 "..song.timeStamp end
+			if exports["xsound"]:isPlaying(booth) then
+				song.timeStamp = "🔊 "..song.timeStamp
+			else
+				song.timeStamp = "🔇 "..song.timeStamp
+			end
 		end
 	end
 
@@ -122,7 +140,7 @@ RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
 				Config.System.Menu == "ox" and "![](https://pngimg.com/uploads/youtube/youtube_PNG12.png)\n")..locale("target", "dj_booth")
 
 	musicMenu[#musicMenu + 1] = {
-		--isMenuHeader = true,
+		disabled = true,
 		image = song.icon,
 		icon = song.icon,
 		header = song.header,
@@ -132,7 +150,7 @@ RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
 		icon = "fab fa-youtube",
 		header = locale("menu", "play"), txt = locale("menu", "youtube_url"),
 		onSelect = function()
-			TriggerEvent("jim-djbooth:client:musicMenu", { zoneNum = data.zoneNum })
+			TriggerEvent(getScript()..":client:musicMenu", { zoneNum = data.zoneNum })
 		end,
 	}
 	if previousSongs[booth] then
@@ -140,7 +158,7 @@ RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
 			icon = "fas fa-clock-rotate-left",
 			header = locale("menu", "history"),
 			onSelect = function()
-				TriggerEvent("jim-djbooth:client:history", { history = previousSongs[booth], zoneNum = data.zoneNum })
+				TriggerEvent(getScript()..":client:history", { history = previousSongs[booth], zoneNum = data.zoneNum })
 			end,
 		}
 	end
@@ -150,7 +168,7 @@ RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
 			icon = isPlaying and "fas fa-pause" or "fas fa-play",
 			header = locale("menu", isPlaying and "text_pause" or "text_resume"),
 			onSelect = function()
-				TriggerServerEvent("jim-djbooth:server:PauseResume", { zoneNum = data.zoneNum })
+				TriggerServerEvent(getScript()..":server:PauseResume", { zoneNum = data.zoneNum })
 			end,
 		}
 
@@ -160,22 +178,24 @@ RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
 			header = locale("menu", "volume")..volume.."%",
 			progress = tonumber(volume),
 			onSelect = function()
-				TriggerEvent("jim-djbooth:client:changeVolume", { zoneNum = data.zoneNum, currVol = volume })
+				TriggerEvent(getScript()..":client:changeVolume", { zoneNum = data.zoneNum, currVol = volume })
 			end,
 		}
 		musicMenu[#musicMenu+1] = {
 			icon = "fas fa-stop",
 			header = locale("menu", "stop"),
 			onSelect = function()
-				TriggerServerEvent("jim-djbooth:server:stopMusic", { zoneNum = data.zoneNum })
+				TriggerServerEvent(getScript()..":server:stopMusic", { zoneNum = data.zoneNum })
 			end,
 		}
 	end
-	openMenu(musicMenu, { header = header })
+	openMenu(musicMenu, {
+		header = header
+	})
 	song = nil
 end)
 
-RegisterNetEvent("jim-djbooth:client:history", function(data)
+RegisterNetEvent(getScript()..":client:history", function(data)
 	local musicMenu = {}
 	for i = #data.history, 1, -1 do
 		local img = "https://img.youtube.com/vi/"..string.sub(data.history[i], - 11).."/mqdefault.jpg"
@@ -183,43 +203,47 @@ RegisterNetEvent("jim-djbooth:client:history", function(data)
 			image = img, icon = img,
 			header = data.history[i],
 			onSelect = function()
-				TriggerServerEvent('jim-djbooth:server:playMusic', data.history[i], data.zoneNum)
+				TriggerServerEvent(getScript()..":server:playMusic", data.history[i], data.zoneNum)
 			end,
 		}
 	end
 	openMenu(musicMenu, {
 		header = locale("menu", "history"),
 		onBack = function()
-			TriggerEvent("jim-djbooth:client:playMusic", { job = data.job, zone = data.zoneNum })
+			TriggerEvent(getScript()..":client:playMusic", {
+				job = data.job,
+				zone = data.zoneNum
+			})
 		end,
 	})
 end)
 
-RegisterNetEvent('jim-djbooth:client:musicMenu', function(data)
-	local dialog = nil
-	if Config.System.Menu == "ox" then
-		dialog = exports[OXLibExport]:inputDialog(locale("menu", "select"), {locale("menu", "youtube_url")})
-	elseif Config.System.Menu == "qb" then
-		dialog = exports['qb-input']:ShowInput({
-			header = locale("menu", "select"),
-			submitText = locale("menu", "submit"),
-			inputs = { { type = 'text', isRequired = true, name = 'song', text = locale("menu", "youtube_url") } }
-		})
-	end
+RegisterNetEvent(getScript()..":client:musicMenu", function(data)
+
+    local dialog = createInput(locale("menu", "select"), {
+		{ type = "text", isRequired = true, name = "song", text = locale("menu", "youtube_url") },
+    })
+
     if dialog then
         if not dialog.song and not dialog[1] then return end
+
 		-- Attempt to correct link if missing "youtube" as some scripts use just the video id at the end
-		if not string.find((dialog.song or dialog[1]), "youtu") then dialog.song = "https://www.youtube.com/watch?v="..(dialog.song or dialog[1]) end
+		if not string.find((dialog.song or dialog[1]), "youtu") then
+			dialog.song = "https://www.youtube.com/watch?v="..(dialog.song or dialog[1])
+		end
+
 		triggerNotify(nil, locale("notify", "load_link")..(dialog.song or dialog[1]))
-        TriggerServerEvent('jim-djbooth:server:playMusic', (dialog.song or dialog[1]), data.zoneNum)
+        TriggerServerEvent(getScript()..":server:playMusic", (dialog.song or dialog[1]), data.zoneNum)
     end
 end)
 
-RegisterNetEvent('jim-djbooth:client:changeVolume', function(data)
+RegisterNetEvent(getScript()..":client:changeVolume", function(data)
 	local dialog = nil
+
+
 	if Config.System.Menu == "ox" then
 		dialog = exports[OXLibExport]:inputDialog(locale("menu", "music_volume"), {
-			{ 	type = 'slider',
+			{ 	type = "slider",
 				label = locale("menu", "range"),
 				required = true,
 				default = data.currVol,
@@ -229,10 +253,10 @@ RegisterNetEvent('jim-djbooth:client:changeVolume', function(data)
 		})
 
 	elseif Config.System.Menu == "qb" then
-		dialog = exports['qb-input']:ShowInput({
+		dialog = exports["qb-input"]:ShowInput({
 			header = locale("menu", "music_volume"),
 			submitText = locale("menu", "suubmit"),
-			inputs = { { type = 'text', isRequired = true, name = 'volume', text = locale("menu", "range") } }
+			inputs = { { type = "text", isRequired = true, name = "volume", text = locale("menu", "range") } }
 		})
 	end
     if dialog then
@@ -243,6 +267,6 @@ RegisterNetEvent('jim-djbooth:client:changeVolume', function(data)
 		if dialog.volume <= 0.01 then dialog.volume = 0.01 end
 		if dialog.volume > 1.0 then dialog.volume = 1.0 end
 		triggerNotify(nil, locale("notify", "new_volume")..math.ceil(dialog.volume * 100).."%", "success")
-        TriggerServerEvent('jim-djbooth:server:changeVolume', dialog.volume, data.zoneNum)
+        TriggerServerEvent(getScript()..":server:changeVolume", dialog.volume, data.zoneNum)
     end
 end)

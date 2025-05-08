@@ -13,21 +13,21 @@ Uses dynamically create menus that changes depending on state of music.
 # Installation
     - Download the zip and extract the folder
     - If needed, rename the folder to from "jim-djbooth-master" to "jim-djbooth"
-    - Place in a folder called [jim-extras]
-    - Make sure it starts AFTER xsound and BEFORE any scripts that make use of it
+    - Place in a folder called [jimextras]
+    - Make sure it starts AFTER `xsound` and BEFORE any scripts that make use of it
 
 Example of my load order:
 ```
 # QBCore & Extra stuff
 ensure qb-core
 ensure [qb]
-ensure [standalone]
+ensure [standalone] # xsound here
 ensure [voice]
 ensure [defaultmaps]
 ensure [vehicles]
 
 # Extra Jim Stuff
-ensure [jimextras]
+ensure [jimextras] # jim-djbooth here
 ensure [jim]
 ```
 

@@ -1,32 +1,10 @@
 Locations = {
-    { -- Vanilla Unicorn DJ Booth
-        job = "vanilla", -- Set this to required job role
-        enableBooth = false, -- option to disable rather than deleting code
-        DefaultVolume = 0.1, -- 0.01 is lowest, 1.0 is max
-        radius = 30, -- The radius in units of the sound from the booth
-        coords = vec3(120.0, -1281.72, 29.48), -- Where the booth is located
-    },
-
     { -- Sisyphus Theater
         job = "public", -- "public" makes it so anyone can add music.
         enableBooth = true,
         DefaultVolume = 0.15, radius = 200,
         coords = vec3(206.9, 1181.04, 226.51),
         soundLoc = vec3(212.32, 1155.87, 227.01), -- Add sound origin location if you don't want the music to play from the dj booth
-    },
-
-    { -- Henhouse (smokeys MLO coords)
-        job = "henhouse",
-        enableBooth = true,
-        DefaultVolume = 0.1, radius = 30,
-        coords = vec3(-311.35, 6265.18, 32.06),
-    },
-
-    { -- Tequilala bar (ingame mlo)
-        job = "tequilala",
-        enableBooth = false,
-        DefaultVolume = 0.1, radius = 30,
-        coords = vec3(-549.68, 282.64, 82.98),
     },
 
     { -- GabzTuners Radio Prop
@@ -45,13 +23,5 @@ Locations = {
         DefaultVolume = 0.1, radius = 30,
         coords = vec3(1595.53, 6453.02, 26.165),
         prop = { model = "prop_boombox_01", coords = vec3(1595.53, 6453.02, 26.165) },
-    },
-
-    { -- LostMC compound next to Casino
-        gang = "lostmc",
-        enableBooth = true,
-        DefaultVolume = 0.1, radius = 20,
-        coords = vec3(983.14, -133.17, 79.59),
-        soundLoc = vec3(988.79, -131.62, 78.89), -- Add sound origin location if you don't want the music to play from the dj booth
     },
 }

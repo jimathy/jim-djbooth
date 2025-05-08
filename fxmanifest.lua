@@ -1,6 +1,6 @@
 name "Jim-DJBooth"
 author "Jimathy"
-version "1.4.0"
+version "1.4"
 description 'Music player script'
 fx_version "cerulean"
 game "gta5"
