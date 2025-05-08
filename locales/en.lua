@@ -1,3 +1,5 @@
+Loc = Loc or {}
+
 Loc["en"] = {
     notify = {
         ["load_link"] = "Loading link: ",

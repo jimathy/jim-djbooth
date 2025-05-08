@@ -1,59 +1,96 @@
-local QBCore = exports[Config.Core]:GetCoreObject()
-
-local PlayerData, Targets, Props = {}, {}, {}
-local Locations = {}
-
-local function removeTargets() for k in pairs(Targets) do exports['qb-target']:RemoveZone(k) end Targets = {} for i = 1, #Props do DeleteEntity(Props[i]) end Props = {} end
+local CircleTargets, Props = {}, {}
+local Locations, previousSongs = {}, {}
+local function removeTargets()
+	for _, v in pairs(CircleTargets) do removeZoneTarget(v) end
+	for i = 1, #Props do destroyProp(Props[i]) end
+	Props = {} CircleTargets = {}
+end
 
 local function makeTargets()
 	removeTargets()
 	for i = 1, #Locations do
-		if Locations[i].enableBooth then
+		local target = Locations[i]
+		if target.enableBooth then
 			local RequireJob, RequireGang = nil, nil
-			if Locations[i].job then RequireJob = Locations[i].job
-				if RequireJob == "public" then RequireJob = nil end
+			if target.job then
+				RequireJob = target.job
+				if RequireJob == "public" then
+					RequireJob = nil
+				end
 			end
-			if Locations[i].gang then RequireGang = Locations[i].RequireGang end
-			Targets["Booth"..i] =
-			exports['qb-target']:AddCircleZone("Booth"..i, Locations[i].coords, 0.6, {name="Booth"..i, debugPoly=Config.Debug, useZ=true, },
-				{ options = { { event = "jim-djbooth:client:playMusic", icon = "fab fa-youtube", label = Loc[Config.Lan].target["dj_booth"], job = RequireJob, gang = RequireGang, zoneNum = i, coords = Locations[i].coords }, }, distance = 2.0 })
-			if Locations[i].prop then
-				Props[#Props+1] = makeProp({prop = Locations[i].prop, coords = vec4(Locations[i].coords.x, Locations[i].coords.y, Locations[i].coords.z, math.random(1,359)+0.0) }, true, false)
+			if target.gang then
+				RequireGang = target.RequireGang
+			end
+			local options = {
+				{ 	action = function()
+						TriggerEvent(getScript()..":client:playMusic", { zoneNum = i, job = RequireJob, gang = RequireGang, })
+					end,
+					icon = "fab fa-youtube",
+					label = locale("target", "dj_booth"),
+					job = RequireJob,
+					gang = RequireGang,
+			}, }
+			if target.prop then -- If spawning a prop, make entity target instead (ignores depth and width stuff)
+				Props[#Props+1] = makeDistProp( { prop = target.prop.model, coords = target.prop.coords }, true, false)
+			end
+			local name = "Booth"..i
+			CircleTargets[name] =
+				createCircleTarget({name, target.coords.xyz, 0.6, { name = name, debugPoly = debugMode, useZ = true }}, options, 2.0)
+
+			if debugMode then	-- LETS DEBUG THIS BRO
+				CreateThread(function()
+					local sphereCoord = target.soundLoc or target.coords or target.prop.coords
+					while true do
+						DrawMarker(28, sphereCoord.xyz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 255, 255, 255, 100)
+						DrawMarker(28, sphereCoord.xyz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, target.radius + 0.0, target.radius + 0.0, target.radius + 0.0, 255, 255, 255, 100)
+						Wait(0)
+					end
+				end)
 			end
 		end
 	end
+	print("^3makeTargets^7: ^2Total DJBooth Targets Created^7: ^6"..#Locations.."^7")
 end
 
 local function syncLocations()
-	local p = promise.new()
-	QBCore.Functions.TriggerCallback('jim-djbooth:server:syncLocations', function(cb) p:resolve(cb) end)
-	Locations = Citizen.Await(p)
+	Wait(1000)
+	Locations = triggerCallback(getScript()..":server:syncLocations")
+	jsonPrint(Locations)
+	Wait(1000)
 	makeTargets()
 end
 
-AddEventHandler('onResourceStart', function(r) if (GetCurrentResourceName() ~= r) then return end
-	if GetResourceState("xsound") ~= "started" then print("xSound not started, script won't function") end
-	PlayerData = QBCore.Functions.GetPlayerData() Wait(5000) syncLocations()
-end)
-AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
-	PlayerData = QBCore.Functions.GetPlayerData() Wait(5000) syncLocations()
-end)
-RegisterNetEvent('QBCore:Client:OnJobUpdate', function(JobInfo) PlayerData.job = JobInfo end)
-RegisterNetEvent('QBCore:Client:OnPlayerUnload', function() PlayerData = {} end)
+onPlayerLoaded(function()
+	if not isStarted("xsound") then
+		print("^1xSound not started, script won't function^7")
+		return
+	end
+	syncLocations()
+end, true)
 
-RegisterNetEvent("jim-djbooth:client:syncLocations", function(newLocations) Locations = newLocations makeTargets() end)
+RegisterNetEvent(getScript()..":client:syncLocations", function(newLocations)
+	Locations = newLocations
+	makeTargets()
+end)
 
-RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
+RegisterNetEvent(getScript()..":client:playMusic", function(data)
+	jsonPrint(data)
 	local booth = ""
 	for k, v in pairs(Locations) do
-		if #(GetEntityCoords(PlayerPedId()) - v["coords"]) <= v["radius"] then
-			if v["job"] then booth = v["job"]..k elseif v["gang"] then booth = v["gang"]..k end
+		local playerCoords = GetEntityCoords(PlayerPedId())
+		local targetCoords = v.coords
+		local dx = playerCoords.x - targetCoords.x
+		local dy = playerCoords.y - targetCoords.y
+		local dz = playerCoords.z - targetCoords.z
+		local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
+
+		if distance <= v.radius then
+			booth = v.job and v.job..k or v.gang..k
 		end
 	end
-	local song = { playing = "", duration = "", timeStamp = "",	duration = "", url = "", icon = "", header = Loc[Config.Lan].menu["no_song"], txt = "", volume = "" }
-	local p = promise.new()
-	QBCore.Functions.TriggerCallback('jim-djbooth:songInfo', function(cb) p:resolve(cb) end)
-	previousSongs = Citizen.Await(p)
+
+	local song = { playing = "", duration = "", timeStamp = "", url = "", icon = "", header = locale("menu", "no_song"), txt = "", volume = "" }
+	previousSongs = triggerCallback(getScript()..":songInfo")
 
 	-- Grab song info and build table
 	if exports["xsound"]:soundExists(booth) then
@@ -66,9 +103,19 @@ RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
 			txt = exports["xsound"]:getLink(booth),
 			volume = math.ceil(exports["xsound"]:getVolume(booth)*100)
 		}
-		if exports["xsound"]:isPlaying(booth) then song.header = Loc[Config.Lan].menu["cur_playing"] end
-		if exports["xsound"]:isPaused(booth) then song.header = Loc[Config.Lan].menu["cur_paused"] end
-		if exports["xsound"]:getMaxDuration(booth) == 0 then song.timeStamp = Loc[Config.Lan].menu["live"] end
+
+		if exports["xsound"]:isPlaying(booth) then
+			song.header = locale("menu", "cur_playing")
+		end
+
+		if exports["xsound"]:isPaused(booth) then
+			song.header = locale("menu", "cur_paused")
+		end
+
+		if exports["xsound"]:getMaxDuration(booth) == 0 then
+			song.timeStamp = locale("menu", "live")
+		end
+
 		if exports["xsound"]:getMaxDuration(booth) > 0 then
 			local timestamp = (exports["xsound"]:getTimeStamp(booth) * 10)
 			local mm = (timestamp // (60 * 10)) % 60.
@@ -79,147 +126,138 @@ RegisterNetEvent("jim-djbooth:client:playMusic", function(data)
 			ss = (duration // 10) % 60.
 			duration = string.format("%02d:%02d", mm, ss)
 			song.timeStamp = "("..timestamp.."/"..duration..")"
-			if exports["xsound"]:isPlaying(booth) then song.timeStamp = "🔊 "..song.timeStamp else song.timeStamp = "🔇 "..song.timeStamp end
+			if exports["xsound"]:isPlaying(booth) then
+				song.timeStamp = "🔊 "..song.timeStamp
+			else
+				song.timeStamp = "🔇 "..song.timeStamp
+			end
 		end
 	end
 
 	local musicMenu = {}
-	if Config.Menu == "qb" then
-		musicMenu[#musicMenu+1] = {
-			isMenuHeader = true,
-			header = '<img src=https://cdn-icons-png.flaticon.com/512/1384/1384060.png width=20px></img>&nbsp; '..Loc[Config.Lan].target["dj_booth"],
-			txt = ""
-		}
-		musicMenu[#musicMenu+1] = { icon = "fas fa-circle-xmark", header = "", txt = Loc[Config.Lan].menu["close"], params = { event = "qb-menu:client:closemenu" } }
-	end
+	local header = "https://cdn-icons-png.flaticon.com/512/1384/1384060.png"
+	header = 	(Config.System.Menu == "qb" and "<img src=https://cdn-icons-png.flaticon.com/512/1384/1384060.png width=20px></img>&nbsp; " or
+				Config.System.Menu == "ox" and "![](https://pngimg.com/uploads/youtube/youtube_PNG12.png)\n")..locale("target", "dj_booth")
 
 	musicMenu[#musicMenu + 1] = {
-		canClick = false,
 		disabled = true,
-		image = song.icon, icon = song.icon,
-		header = song.header, txt = song.txt.."<br>"..song.timeStamp, --qb-menu
-		title = song.header, description = song.txt.."\n"..song.timeStamp, -- ox_lib
+		image = song.icon,
+		icon = song.icon,
+		header = song.header,
+		txt = song.txt..br..song.timeStamp,
 	}
 	musicMenu[#musicMenu+1] = {
 		icon = "fab fa-youtube",
-		header = song.header, txt =  Loc[Config.Lan].menu["enter_url"], --qb-menu
-		title = Loc[Config.Lan].menu["play"], -- ox_lib
-		header = Loc[Config.Lan].menu["play"],
-		event = "jim-djbooth:client:musicMenu",	args = { zoneNum = data.zoneNum }, -- ox_lib
-		params = { event = "jim-djbooth:client:musicMenu", args = { zoneNum = data.zoneNum } }
+		header = locale("menu", "play"), txt = locale("menu", "youtube_url"),
+		onSelect = function()
+			TriggerEvent(getScript()..":client:musicMenu", { zoneNum = data.zoneNum })
+		end,
 	}
 	if previousSongs[booth] then
 		musicMenu[#musicMenu+1] = {
 			icon = "fas fa-clock-rotate-left",
-			header = Loc[Config.Lan].menu["history"],
-			title = Loc[Config.Lan].menu["history"], -- ox_lib
-			event = "jim-djbooth:client:history", args = { history = previousSongs[booth], zoneNum = data.zoneNum }, -- ox_lib
-			params = { event = "jim-djbooth:client:history", args = { history = previousSongs[booth], zoneNum = data.zoneNum } }
+			header = locale("menu", "history"),
+			onSelect = function()
+				TriggerEvent(getScript()..":client:history", { history = previousSongs[booth], zoneNum = data.zoneNum })
+			end,
 		}
 	end
 	if exports["xsound"]:soundExists(booth) then
-		if exports["xsound"]:isPlaying(booth) then
-			musicMenu[#musicMenu+1] = {
-				icon = "fas fa-pause",
-				header = Loc[Config.Lan].menu["text_pause"],
-				title = Loc[Config.Lan].menu["text_pause"],
-				serverEvent = "jim-djbooth:server:PauseResume", args = { zoneNum = data.zoneNum },
-				params = { isServer = true, event = "jim-djbooth:server:PauseResume", args = { zoneNum = data.zoneNum } }
-			}
-		elseif exports["xsound"]:isPaused(booth) then
-			musicMenu[#musicMenu+1] = {
-				icon = "fas fa-play",
-				header = Loc[Config.Lan].menu["text_resume"],
-				title = Loc[Config.Lan].menu["text_resume"],
-				serverEvent = "jim-djbooth:server:PauseResume", args = { zoneNum = data.zoneNum },
-				params = { isServer = true, event = "jim-djbooth:server:PauseResume", args = { zoneNum = data.zoneNum } }
-			}
-		end
+		local isPlaying = exports["xsound"]:isPlaying(booth)
+		musicMenu[#musicMenu+1] = {
+			icon = isPlaying and "fas fa-pause" or "fas fa-play",
+			header = locale("menu", isPlaying and "text_pause" or "text_resume"),
+			onSelect = function()
+				TriggerServerEvent(getScript()..":server:PauseResume", { zoneNum = data.zoneNum })
+			end,
+		}
+
+		local volume = song and song.volume or 1
 		musicMenu[#musicMenu+1] = {
 			icon = "fas fa-volume-off",
-			header = Loc[Config.Lan].menu["volume"]..song.volume.."%",
-			title = Loc[Config.Lan].menu["volume"]..song.volume.."%",
-			progress = tonumber(song.volume),
-			event = "jim-djbooth:client:changeVolume", args = { zoneNum = data.zoneNum,  },
-			params = { event = "jim-djbooth:client:changeVolume", args = { zoneNum = data.zoneNum } }
+			header = locale("menu", "volume")..volume.."%",
+			progress = tonumber(volume),
+			onSelect = function()
+				TriggerEvent(getScript()..":client:changeVolume", { zoneNum = data.zoneNum, currVol = volume })
+			end,
 		}
 		musicMenu[#musicMenu+1] = {
 			icon = "fas fa-stop",
-			header = Loc[Config.Lan].menu["stop"],
-			title = Loc[Config.Lan].menu["stop"],
-			serverEvent = "jim-djbooth:server:stopMusic", args = { zoneNum = data.zoneNum }, -- ox_lib
-			params = { isServer = true,	event = "jim-djbooth:server:stopMusic",	args = { zoneNum = data.zoneNum } }
+			header = locale("menu", "stop"),
+			onSelect = function()
+				TriggerServerEvent(getScript()..":server:stopMusic", { zoneNum = data.zoneNum })
+			end,
 		}
 	end
-
-	if Config.Menu == "ox" then
-		exports.ox_lib:registerContext({id = 'booth', title = Loc[Config.Lan].target["dj_booth"], position = 'top-right', options = musicMenu })
-		exports.ox_lib:showContext("booth")
-	elseif Config.Menu == "qb" then
-		exports['qb-menu']:openMenu(musicMenu)
-	end
+	openMenu(musicMenu, {
+		header = header
+	})
 	song = nil
 end)
-RegisterNetEvent("jim-djbooth:client:history", function(data)
+
+RegisterNetEvent(getScript()..":client:history", function(data)
 	local musicMenu = {}
-	if Config.Menu == "qb" then
-		musicMenu[#musicMenu+1] = {	icon = "fas fa-clock-rotate-left", isMenuHeader = true, header = "<img src=https://cdn-icons-png.flaticon.com/512/1384/1384060.png width=20px></img>&nbsp; "..Loc[Config.Lan].target["dj_booth"], txt = Loc[Config.Lan].menu["history_play"] }
-	end
-	musicMenu[#musicMenu+1] = {
-		icon = "fas fa-circle-arrow-left",
-		header = "", txt = Loc[Config.Lan].menu["back"],
-		title = Loc[Config.Lan].menu["back"],
-		event = "jim-djbooth:client:playMusic", args = { job = data.job, zone = data.zoneNum },
-		params = { event = "jim-djbooth:client:playMusic", args = { job = data.job, zone = data.zoneNum } }
-	}
 	for i = #data.history, 1, -1 do
+		local img = "https://img.youtube.com/vi/"..string.sub(data.history[i], - 11).."/mqdefault.jpg"
 		musicMenu[#musicMenu+1] = {
-			image = "https://img.youtube.com/vi/"..string.sub(data.history[i], - 11).."/mqdefault.jpg",
-			icon = "https://img.youtube.com/vi/"..string.sub(data.history[i], - 11).."/mqdefault.jpg",
-			header = "", txt = data.history[i],
-			title = data.history[i],
-			event = "jim-djbooth:client:historyPlay", args = { song = data.history[i], zoneNum = data.zoneNum },
-			params = { event = "jim-djbooth:client:historyPlay", args = { song = data.history[i], zoneNum = data.zoneNum } }
+			image = img, icon = img,
+			header = data.history[i],
+			onSelect = function()
+				TriggerServerEvent(getScript()..":server:playMusic", data.history[i], data.zoneNum)
+			end,
 		}
 	end
-	if Config.Menu == "ox" then
-		exports.ox_lib:registerContext({ id = 'history', title = Loc[Config.Lan].target["dj_booth"], position = 'top-right', options = musicMenu,})
-		exports.ox_lib:showContext("history")
-	elseif Config.Menu == "qb" then
-		exports['qb-menu']:openMenu(musicMenu)
-	end
+	openMenu(musicMenu, {
+		header = locale("menu", "history"),
+		onBack = function()
+			TriggerEvent(getScript()..":client:playMusic", {
+				job = data.job,
+				zone = data.zoneNum
+			})
+		end,
+	})
 end)
 
-RegisterNetEvent('jim-djbooth:client:historyPlay', function(data) TriggerServerEvent('jim-djbooth:server:playMusic', data.song, data.zoneNum) end)
+RegisterNetEvent(getScript()..":client:musicMenu", function(data)
 
-RegisterNetEvent('jim-djbooth:client:musicMenu', function(data)
-	local dialog = nil
-	if Config.Menu == "ox" then
-		dialog = exports.ox_lib:inputDialog(Loc[Config.Lan].menu["select"], {Loc[Config.Lan].menu["youtube_url"]})
-	elseif Config.Menu == "qb" then
-		dialog = exports['qb-input']:ShowInput({
-        header = Loc[Config.Lan].menu["select"],
-        submitText = Loc[Config.Lan].menu["submit"],
-        inputs = { { type = 'text', isRequired = true, name = 'song', text = Loc[Config.Lan].menu["youtube_url"] } } })
-	end
+    local dialog = createInput(locale("menu", "select"), {
+		{ type = "text", isRequired = true, name = "song", text = locale("menu", "youtube_url") },
+    })
+
     if dialog then
         if not dialog.song and not dialog[1] then return end
+
 		-- Attempt to correct link if missing "youtube" as some scripts use just the video id at the end
-		if not string.find((dialog.song or dialog[1]), "youtu") then dialog.song = "https://www.youtube.com/watch?v="..(dialog.song or dialog[1]) end
-		triggerNotify(nil, Loc[Config.Lan].notify["load_link"]..(dialog.song or dialog[1]))
-        TriggerServerEvent('jim-djbooth:server:playMusic', (dialog.song or dialog[1]), data.zoneNum)
+		if not string.find((dialog.song or dialog[1]), "youtu") then
+			dialog.song = "https://www.youtube.com/watch?v="..(dialog.song or dialog[1])
+		end
+
+		triggerNotify(nil, locale("notify", "load_link")..(dialog.song or dialog[1]))
+        TriggerServerEvent(getScript()..":server:playMusic", (dialog.song or dialog[1]), data.zoneNum)
     end
 end)
 
-RegisterNetEvent('jim-djbooth:client:changeVolume', function(data)
+RegisterNetEvent(getScript()..":client:changeVolume", function(data)
 	local dialog = nil
-	if Config.Menu == "ox" then
-		dialog = exports.ox_lib:inputDialog(Loc[Config.Lan].menu["music_volume"], {Loc[Config.Lan].menu["range"]})
-	elseif Config.Menu == "qb" then
-		dialog = exports['qb-input']:ShowInput({
-        header = Loc[Config.Lan].menu["music_volume"],
-        submitText = Loc[Config.Lan].menu["submit"],
-        inputs = { { type = 'text', isRequired = true, name = 'volume', text = Loc[Config.Lan].menu["range"] } } })
+
+
+	if Config.System.Menu == "ox" then
+		dialog = exports[OXLibExport]:inputDialog(locale("menu", "music_volume"), {
+			{ 	type = "slider",
+				label = locale("menu", "range"),
+				required = true,
+				default = data.currVol,
+				min = 1,
+				max = 100
+			},
+		})
+
+	elseif Config.System.Menu == "qb" then
+		dialog = exports["qb-input"]:ShowInput({
+			header = locale("menu", "music_volume"),
+			submitText = locale("menu", "suubmit"),
+			inputs = { { type = "text", isRequired = true, name = "volume", text = locale("menu", "range") } }
+		})
 	end
     if dialog then
         if not dialog.volume and not dialog[1] then return end
@@ -228,14 +266,7 @@ RegisterNetEvent('jim-djbooth:client:changeVolume', function(data)
 		-- Don't let numbers go too high or too low
 		if dialog.volume <= 0.01 then dialog.volume = 0.01 end
 		if dialog.volume > 1.0 then dialog.volume = 1.0 end
-		triggerNotify(nil, Loc[Config.Lan].notify["new_volume"]..math.ceil(dialog.volume * 100).."%", "success")
-        TriggerServerEvent('jim-djbooth:server:changeVolume', dialog.volume, data.zoneNum)
+		triggerNotify(nil, locale("notify", "new_volume")..math.ceil(dialog.volume * 100).."%", "success")
+        TriggerServerEvent(getScript()..":server:changeVolume", dialog.volume, data.zoneNum)
     end
-end)
-
-AddEventHandler('onResourceStop', function(r) if r ~= GetCurrentResourceName() then return end
-	if GetResourceState("qb-target") == "started" or GetResourceState("ox_target") == "started" then
-		for k in pairs(Targets) do exports['qb-target']:RemoveZone(k) end
-		for i = 1, #Props do DeleteEntity(Props[i]) end
-	end
 end)
