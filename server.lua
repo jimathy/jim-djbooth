@@ -92,9 +92,11 @@ RegisterNetEvent(getScript()..":server:changeVolume", function(volume, zoneNum)
 	})
 end)
 
-createCallback(getScript()..":songInfo", function(source)
-	return previousSongs
-end)
+onResourceStart(function()
+	createCallback(getScript()..":songInfo", function(source)
+		return previousSongs
+	end)
+end, true)
 
 onResourceStop(function()
 	DestroyAll()
