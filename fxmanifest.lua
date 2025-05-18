@@ -12,7 +12,7 @@ shared_scripts {
     'locales/*.lua*',
     'config.lua',
 
-    --Jim Bridge - https://github.com/jimathy/jim-bridge
+    --Jim Bridge - https://github.com/jimathy/jim_bridge
     '@jim_bridge/starter.lua',
 
     'shared/*.lua'
