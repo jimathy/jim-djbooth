@@ -136,15 +136,19 @@ RegisterNetEvent(getScript()..":client:playMusic", function(data)
 
 	local musicMenu = {}
 	local header = "https://cdn-icons-png.flaticon.com/512/1384/1384060.png"
-	header = 	(Config.System.Menu == "qb" and "<img src=https://cdn-icons-png.flaticon.com/512/1384/1384060.png width=20px></img>&nbsp; " or
-				Config.System.Menu == "ox" and "![](https://pngimg.com/uploads/youtube/youtube_PNG12.png)\n")..locale("target", "dj_booth")
+	header = 	(
+					(
+						Config.System.Menu == "qb" and "<img src=https://cdn-icons-png.flaticon.com/512/1384/1384060.png width=20px></img>&nbsp; "..locale("target", "dj_booth") or
+						Config.System.Menu == "ox" and "![](https://pngimg.com/uploads/youtube/youtube_PNG12.png)"..locale("target", "dj_booth")
+					)
+				) or locale("target", "dj_booth")
 
 	musicMenu[#musicMenu + 1] = {
 		disabled = true,
 		image = song.icon,
 		icon = song.icon,
 		header = song.header,
-		txt = song.txt..br..song.timeStamp,
+		txt = song.txt ~= "" and song.txt..br..song.timeStamp or nil,
 	}
 	musicMenu[#musicMenu+1] = {
 		icon = "fab fa-youtube",
@@ -221,7 +225,12 @@ end)
 RegisterNetEvent(getScript()..":client:musicMenu", function(data)
 
     local dialog = createInput(locale("menu", "select"), {
-		{ type = "text", isRequired = true, name = "song", text = locale("menu", "youtube_url") },
+		{
+			type = "text",
+			isRequired = true,
+			name = "song",
+			text = locale("menu", "youtube_url")
+		},
     })
 
     if dialog then
@@ -238,27 +247,23 @@ RegisterNetEvent(getScript()..":client:musicMenu", function(data)
 end)
 
 RegisterNetEvent(getScript()..":client:changeVolume", function(data)
-	local dialog = nil
-
-
-	if Config.System.Menu == "ox" then
-		dialog = exports[OXLibExport]:inputDialog(locale("menu", "music_volume"), {
-			{ 	type = "slider",
-				label = locale("menu", "range"),
-				required = true,
-				default = data.currVol,
-				min = 1,
-				max = 100
-			},
-		})
-
-	elseif Config.System.Menu == "qb" then
-		dialog = exports["qb-input"]:ShowInput({
+    local dialog = createInput(locale("menu", "music_volume"), {
+		(Config.System.Menu == "ox" or Config.System.Menu == "lation" and {
+			type = "slider",
+			label = locale("menu", "range"),
+			required = true,
+			default = data.currVol,
+			min = 1,
+			max = 100
+		}) or nil,
+		(Config.System.Menu == "qb" and {
 			header = locale("menu", "music_volume"),
 			submitText = locale("menu", "suubmit"),
-			inputs = { { type = "text", isRequired = true, name = "volume", text = locale("menu", "range") } }
-		})
-	end
+			inputs = {
+				{ type = "text", isRequired = true, name = "volume", text = locale("menu", "range") }
+			}
+		}) or nil,
+    })
     if dialog then
         if not dialog.volume and not dialog[1] then return end
 		-- Automatically correct from numbers to be numbers xsound understands
