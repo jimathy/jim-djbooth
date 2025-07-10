@@ -248,7 +248,7 @@ end)
 
 RegisterNetEvent(getScript()..":client:changeVolume", function(data)
     local dialog = createInput(locale("menu", "music_volume"), {
-		(Config.System.Menu == "ox" or Config.System.Menu == "lation" and {
+		((Config.System.Menu == "ox" or Config.System.Menu == "lation" )and {
 			type = "slider",
 			label = locale("menu", "range"),
 			required = true,
