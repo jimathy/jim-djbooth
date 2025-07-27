@@ -1,1 +1,7 @@
-1.4
+1.4.01
+
+- Support for lation_ui
+- Lock startup functions behind onResourceStart()
+- (This is just me mainly bumping the version number)
+
+https://github.com/jimathy/jim-djbooth
