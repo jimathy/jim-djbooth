@@ -3,5 +3,6 @@
 - Fixes Music Volume option when using QB-Input
 - Fixes Play/Pause option not working
 - Small Refactor and optimization of code
+- Fix Props spawning too low (you may need to adjust any custom ones you added)
 
 https://github.com/jimathy/jim-djbooth/releases/latest
