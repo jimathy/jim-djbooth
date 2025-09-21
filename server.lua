@@ -10,7 +10,7 @@ local function DestroyAll()
 		local Booth = Locations[i]
 		if Booth.playing then
 			local zoneLabel = ""..(Booth.gang or Booth.job)..i
-			exports["xsound"]:Destroy(-1, zoneLabel)
+			exports.xsound:Destroy(-1, zoneLabel)
 		end
 	end
 end
@@ -42,9 +42,18 @@ RegisterNetEvent(getScript()..":server:playMusic", function(song, zoneNum)
 		songList[#songList+1] = song
 		previousSongs[zoneLabel] = songList
 	end
-	print(zoneLabel..": Playing song: "..song)
-	exports["xsound"]:PlayUrlPos(-1, zoneLabel, song, (Booth.CurrentVolume or Booth.DefaultVolume), (Booth.soundLoc or Booth.coords))
-	exports["xsound"]:Distance(-1, zoneLabel, Booth.radius)
+	debugPrint("^5Debug^7: '^3"..zoneLabel.."^7' ^2Playing song^7: ^5"..song.."^7")
+	exports.xsound:PlayUrlPos(
+		-1,
+		zoneLabel,
+		song, (Booth.CurrentVolume or Booth.DefaultVolume),
+		(Booth.soundLoc or Booth.coords)
+	)
+	exports.xsound:Distance(
+		-1,
+		zoneLabel,
+		Booth.radius
+	)
 	Locations[zoneNum].playing = true
 	TriggerClientEvent(getScript()..":client:playMusic", src, {
 		zoneNum = zoneNum
@@ -57,7 +66,7 @@ RegisterNetEvent(getScript()..":server:stopMusic", function(data)
     if Booth.playing then
 		Locations[data.zoneNum].playing = nil
 		Locations[data.zoneNum].CurrentVolume = nil
-		exports["xsound"]:Destroy(-1, zoneLabel)
+		exports.xsound:Destroy(-1, zoneLabel)
 	end
     TriggerClientEvent(getScript()..":client:playMusic", src, {
 		zoneNum = data.zoneNum
@@ -65,16 +74,17 @@ RegisterNetEvent(getScript()..":server:stopMusic", function(data)
 end)
 
 RegisterNetEvent(getScript()..":server:PauseResume", function(data)
-    local src, Booth = source, Locations[data.zoneNum]
-	local zoneLabel = ""..(Booth.gang or Booth.job)..data.zoneNum
+	local src = source
+	local Booth = Locations[data.zoneNum]
+	local zoneLabel = ""..(Booth.gang or Booth.job or nil)..data.zoneNum
 
 	if Booth.playing then
 		Booth.playing = nil
-		exports["xsound"]:Pause(-1, zoneLabel)
+		exports.xsound:Pause(-1, zoneLabel)
 
 	elseif not Locations[data.zoneNum].playing then
 		Locations[data.zoneNum].playing = true
-		exports["xsound"]:Resume(-1, zoneLabel)
+		exports.xsound:Resume(-1, zoneLabel)
 
 	end
     TriggerClientEvent(getScript()..":client:playMusic", src, {
@@ -86,7 +96,10 @@ RegisterNetEvent(getScript()..":server:changeVolume", function(volume, zoneNum)
     local src, Booth = source, Locations[zoneNum]
 	local zoneLabel = ""..(Booth.gang or Booth.job)..zoneNum
     if not tonumber(volume) then return end
-    if Booth.playing then exports["xsound"]:setVolume(-1, zoneLabel, volume) Locations[zoneNum].CurrentVolume = volume end
+    if Booth.playing then
+		exports.xsound:setVolume(-1, zoneLabel, volume)
+		Locations[zoneNum].CurrentVolume = volume
+	end
     TriggerClientEvent(getScript()..":client:playMusic", src, {
 		zoneNum = zoneNum
 	})

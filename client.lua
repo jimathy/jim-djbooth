@@ -31,7 +31,7 @@ local function makeTargets()
 					gang = RequireGang,
 			}, }
 			if target.prop then -- If spawning a prop, make entity target instead (ignores depth and width stuff)
-				Props[#Props+1] = makeDistProp( { prop = target.prop.model, coords = target.prop.coords }, true, false)
+				Props[#Props+1] = makeDistProp( { prop = target.prop.model, coords = target.prop.coords + vec3(0, 0, 1.03) }, true, false)
 			end
 			local name = "Booth"..i
 			CircleTargets[name] =
@@ -55,7 +55,6 @@ end
 local function syncLocations()
 	Wait(1000)
 	Locations = triggerCallback(getScript()..":server:syncLocations")
-	jsonPrint(Locations)
 	Wait(1000)
 	makeTargets()
 end
@@ -74,7 +73,6 @@ RegisterNetEvent(getScript()..":client:syncLocations", function(newLocations)
 end)
 
 RegisterNetEvent(getScript()..":client:playMusic", function(data)
-	jsonPrint(data)
 	local booth = ""
 	for k, v in pairs(Locations) do
 		local playerCoords = GetEntityCoords(PlayerPedId())
@@ -93,40 +91,40 @@ RegisterNetEvent(getScript()..":client:playMusic", function(data)
 	previousSongs = triggerCallback(getScript()..":songInfo")
 
 	-- Grab song info and build table
-	if exports["xsound"]:soundExists(booth) then
+	if exports.xsound:soundExists(booth) then
 		song = {
-			playing = exports["xsound"]:isPlaying(booth),
+			playing = exports.xsound:isPlaying(booth),
 			timeStamp = "",
-			url = exports["xsound"]:getLink(booth),
-			icon = "https://img.youtube.com/vi/"..string.sub(exports["xsound"]:getLink(booth), - 11).."/mqdefault.jpg",
+			url = exports.xsound:getLink(booth),
+			icon = "https://img.youtube.com/vi/"..string.sub(exports.xsound:getLink(booth), - 11).."/mqdefault.jpg",
 			header = "",
-			txt = exports["xsound"]:getLink(booth),
-			volume = math.ceil(exports["xsound"]:getVolume(booth)*100)
+			txt = exports.xsound:getLink(booth),
+			volume = math.ceil(exports.xsound:getVolume(booth)*100)
 		}
 
-		if exports["xsound"]:isPlaying(booth) then
+		if exports.xsound:isPlaying(booth) then
 			song.header = locale("menu", "cur_playing")
 		end
 
-		if exports["xsound"]:isPaused(booth) then
+		if exports.xsound:isPaused(booth) then
 			song.header = locale("menu", "cur_paused")
 		end
 
-		if exports["xsound"]:getMaxDuration(booth) == 0 then
+		if exports.xsound:getMaxDuration(booth) == 0 then
 			song.timeStamp = locale("menu", "live")
 		end
 
-		if exports["xsound"]:getMaxDuration(booth) > 0 then
-			local timestamp = (exports["xsound"]:getTimeStamp(booth) * 10)
+		if exports.xsound:getMaxDuration(booth) > 0 then
+			local timestamp = (exports.xsound:getTimeStamp(booth) * 10)
 			local mm = (timestamp // (60 * 10)) % 60.
 			local ss = (timestamp // 10) % 60.
 			timestamp = string.format("%02d:%02d", mm, ss)
-			local duration = (exports["xsound"]:getMaxDuration(booth) * 10)
+			local duration = (exports.xsound:getMaxDuration(booth) * 10)
 			mm = (duration // (60 * 10)) % 60.
 			ss = (duration // 10) % 60.
 			duration = string.format("%02d:%02d", mm, ss)
 			song.timeStamp = "("..timestamp.."/"..duration..")"
-			if exports["xsound"]:isPlaying(booth) then
+			if exports.xsound:isPlaying(booth) then
 				song.timeStamp = "🔊 "..song.timeStamp
 			else
 				song.timeStamp = "🔇 "..song.timeStamp
@@ -166,8 +164,8 @@ RegisterNetEvent(getScript()..":client:playMusic", function(data)
 			end,
 		}
 	end
-	if exports["xsound"]:soundExists(booth) then
-		local isPlaying = exports["xsound"]:isPlaying(booth)
+	if exports.xsound:soundExists(booth) then
+		local isPlaying = exports.xsound:isPlaying(booth)
 		musicMenu[#musicMenu+1] = {
 			icon = isPlaying and "fas fa-pause" or "fas fa-play",
 			header = locale("menu", isPlaying and "text_pause" or "text_resume"),
@@ -182,14 +180,19 @@ RegisterNetEvent(getScript()..":client:playMusic", function(data)
 			header = locale("menu", "volume")..volume.."%",
 			progress = tonumber(volume),
 			onSelect = function()
-				TriggerEvent(getScript()..":client:changeVolume", { zoneNum = data.zoneNum, currVol = volume })
+				TriggerEvent(getScript()..":client:changeVolume", {
+					zoneNum = data.zoneNum,
+					currVol = volume
+				})
 			end,
 		}
 		musicMenu[#musicMenu+1] = {
 			icon = "fas fa-stop",
 			header = locale("menu", "stop"),
 			onSelect = function()
-				TriggerServerEvent(getScript()..":server:stopMusic", { zoneNum = data.zoneNum })
+				TriggerServerEvent(getScript()..":server:stopMusic", {
+					zoneNum = data.zoneNum
+				})
 			end,
 		}
 	end
@@ -216,7 +219,7 @@ RegisterNetEvent(getScript()..":client:history", function(data)
 		onBack = function()
 			TriggerEvent(getScript()..":client:playMusic", {
 				job = data.job,
-				zone = data.zoneNum
+				zoneNum = data.zoneNum
 			})
 		end,
 	})
@@ -241,14 +244,14 @@ RegisterNetEvent(getScript()..":client:musicMenu", function(data)
 			dialog.song = "https://www.youtube.com/watch?v="..(dialog.song or dialog[1])
 		end
 
-		triggerNotify(nil, locale("notify", "load_link")..(dialog.song or dialog[1]))
+		triggerNotify(locale("target", "dj_booth"), locale("notify", "load_link")..(dialog.song or dialog[1]))
         TriggerServerEvent(getScript()..":server:playMusic", (dialog.song or dialog[1]), data.zoneNum)
     end
 end)
 
 RegisterNetEvent(getScript()..":client:changeVolume", function(data)
     local dialog = createInput(locale("menu", "music_volume"), {
-		((Config.System.Menu == "ox" or Config.System.Menu == "lation" )and {
+		((Config.System.Menu == "ox" or Config.System.Menu == "lation") and {
 			type = "slider",
 			label = locale("menu", "range"),
 			required = true,
@@ -257,21 +260,21 @@ RegisterNetEvent(getScript()..":client:changeVolume", function(data)
 			max = 100
 		}) or nil,
 		(Config.System.Menu == "qb" and {
-			header = locale("menu", "music_volume"),
-			submitText = locale("menu", "suubmit"),
-			inputs = {
-				{ type = "text", isRequired = true, name = "volume", text = locale("menu", "range") }
-			}
+			type = "text",
+			isRequired = true,
+			name = "volume",
+			text = locale("menu", "range")
 		}) or nil,
     })
     if dialog then
         if not dialog.volume and not dialog[1] then return end
 		-- Automatically correct from numbers to be numbers xsound understands
 		dialog.volume = ((dialog.volume or dialog[1]) / 100)
+
 		-- Don't let numbers go too high or too low
-		if dialog.volume <= 0.01 then dialog.volume = 0.01 end
-		if dialog.volume > 1.0 then dialog.volume = 1.0 end
-		triggerNotify(nil, locale("notify", "new_volume")..math.ceil(dialog.volume * 100).."%", "success")
+		dialog.volume = (dialog.volume <= 0.01 and 0.01) or (dialog.volume > 1.0 and 1.0) or dialog.volume
+
+		triggerNotify(locale("target", "dj_booth"), locale("notify", "new_volume")..math.ceil(dialog.volume * 100).."%", "success")
         TriggerServerEvent(getScript()..":server:changeVolume", dialog.volume, data.zoneNum)
     end
 end)

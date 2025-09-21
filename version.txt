@@ -1,7 +1,7 @@
-1.4.01
+1.4.02
 
-- Support for lation_ui
-- Lock startup functions behind onResourceStart()
-- (This is just me mainly bumping the version number)
+- Fixes Music Volume option when using QB-Input
+- Fixes Play/Pause option not working
+- Small Refactor and optimization of code
 
-https://github.com/jimathy/jim-djbooth
+https://github.com/jimathy/jim-djbooth/releases/latest
