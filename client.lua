@@ -31,7 +31,12 @@ local function makeTargets()
 					gang = RequireGang,
 			}, }
 			if target.prop then -- If spawning a prop, make entity target instead (ignores depth and width stuff)
-				Props[#Props+1] = makeDistProp( { prop = target.prop.model, coords = target.prop.coords + vec3(0, 0, 1.03) }, true, false)
+				if type(target.prop.coords) == "vector3" then
+					target.prop.coords = target.prop.coords + vec3(0, 0, 1.03)
+				else
+					target.prop.coords = target.prop.coords + vec4(0, 0, 1.03, 0)
+				end
+				Props[#Props+1] = makeDistProp( { prop = target.prop.model, coords = target.prop.coords }, true, false)
 			end
 			local name = "Booth"..i
 			CircleTargets[name] =
